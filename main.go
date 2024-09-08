@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v39/github"
@@ -47,10 +49,32 @@ func main() {
 	checkRuleStatus(ruleType)
 }
 
+func getGitHubToken() string {
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		return token
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error getting home directory:", err)
+		os.Exit(1)
+	}
+
+	patFile := filepath.Join(homeDir, ".gist_pat")
+	content, err := os.ReadFile(patFile)
+	if err != nil {
+		fmt.Println("Error reading .gist_pat file:", err)
+		os.Exit(1)
+	}
+
+	return strings.TrimSpace(string(content))
+}
+
 func updateGist(domain, fileName, providerName string) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		&oauth2.Token{AccessToken: getGitHubToken()},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
